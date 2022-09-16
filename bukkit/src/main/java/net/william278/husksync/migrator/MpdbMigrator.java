@@ -18,6 +18,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 
@@ -73,7 +74,7 @@ public class MpdbMigrator extends Migrator {
                 connectionPool.setPassword(sourcePassword);
                 connectionPool.setPoolName((getIdentifier() + "_migrator_pool").toUpperCase());
 
-                plugin.getLoggingAdapter().log(Level.INFO, "Downloading raw data from the MySQLPlayerDataBridge database...");
+                plugin.getLoggingAdapter().log(Level.INFO, "Downloading raw data from the MySQLPlayerDataBridge database (this might take a while)...");
                 final List<MpdbData> dataToMigrate = new ArrayList<>();
                 try (final Connection connection = connectionPool.getConnection()) {
                     try (final PreparedStatement statement = connection.prepareStatement("""
@@ -108,14 +109,21 @@ public class MpdbMigrator extends Migrator {
                     }
                 }
                 plugin.getLoggingAdapter().log(Level.INFO, "Completed download of " + dataToMigrate.size() + " entries from the MySQLPlayerDataBridge database!");
-                plugin.getLoggingAdapter().log(Level.INFO, "Converting raw MySQLPlayerDataBridge data to HuskSync user data...");
-                dataToMigrate.forEach(data -> data.toUserData(mpdbConverter, minecraftVersion).thenAccept(convertedData ->
-                        plugin.getDatabase().ensureUser(data.user()).thenRun(() ->
-                                        plugin.getDatabase().setUserData(data.user(), convertedData, DataSaveCause.MPDB_MIGRATION))
-                                .exceptionally(exception -> {
-                                    plugin.getLoggingAdapter().log(Level.SEVERE, "Failed to migrate MySQLPlayerDataBridge data for " + data.user().username + ": " + exception.getMessage());
-                                    return null;
-                                })));
+                plugin.getLoggingAdapter().log(Level.INFO, "Converting raw MySQLPlayerDataBridge data to HuskSync user data (this might take a while)...");
+
+                final AtomicInteger playersConverted = new AtomicInteger();
+                dataToMigrate.forEach(data -> data.toUserData(mpdbConverter, minecraftVersion).thenAccept(convertedData -> {
+                    plugin.getDatabase().ensureUser(data.user()).thenRun(() ->
+                                    plugin.getDatabase().setUserData(data.user(), convertedData, DataSaveCause.MPDB_MIGRATION))
+                            .exceptionally(exception -> {
+                                plugin.getLoggingAdapter().log(Level.SEVERE, "Failed to migrate MySQLPlayerDataBridge data for " + data.user().username + ": " + exception.getMessage());
+                                return null;
+                            }).join();
+                    playersConverted.getAndIncrement();
+                    if (playersConverted.get() % 50 == 0) {
+                        plugin.getLoggingAdapter().log(Level.INFO, "Converted MySQLPlayerDataBridge data for " + playersConverted + " players...");
+                    }
+                }).join());
                 plugin.getLoggingAdapter().log(Level.INFO, "Migration complete for " + dataToMigrate.size() + " users in " + ((System.currentTimeMillis() - startTime) / 1000) + " seconds!");
                 return true;
             } catch (Exception e) {

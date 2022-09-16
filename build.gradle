@@ -6,10 +6,13 @@ plugins {
 }
 
 group 'net.william278'
-version "$ext.plugin_version+${versionMetadata()}"
+version "$ext.plugin_version-${versionMetadata()}"
 
 ext {
     set 'version', version.toString()
+    set 'jedis_version', jedis_version.toString()
+    set 'mysql_driver_version', mysql_driver_version.toString()
+    set 'snappy_version', snappy_version.toString()
 }
 
 import org.apache.tools.ant.filters.ReplaceTokens
@@ -53,14 +56,14 @@ subprojects {
     version rootProject.version
     archivesBaseName = "${rootProject.name}-${project.name.capitalize()}"
 
-    if (['bukkit', 'api', 'plugin'].contains(project.name)) {
+    if (['bukkit', 'plugin'].contains(project.name)) {
         shadowJar {
             destinationDirectory.set(file("$rootDir/target"))
             archiveClassifier.set('')
         }
 
         // API publishing
-        if ('api'.contains(project.name)) {
+        if ('bukkit'.contains(project.name)) {
             java {
                 withSourcesJar()
                 withJavadocJar()
@@ -99,5 +102,5 @@ def versionMetadata() {
     if (grgit == null) {
         return System.getenv("GITHUB_RUN_NUMBER") ? 'build.' + System.getenv("GITHUB_RUN_NUMBER") : 'unknown'
     }
-    return 'rev.' + grgit.head().abbreviatedId + (grgit.status().clean ? '' : '-indev')
+    return grgit.head().abbreviatedId + (grgit.status().clean ? '' : '-indev')
 }

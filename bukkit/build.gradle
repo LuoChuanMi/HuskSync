@@ -4,6 +4,9 @@ dependencies {
     implementation 'net.william278:mpdbdataconverter:1.0.1'
     implementation 'net.william278:hsldataconverter:1.0'
     implementation 'me.lucko:commodore:2.2'
+    implementation 'mysql:mysql-connector-java:8.0.29'
+    implementation 'org.xerial.snappy:snappy-java:1.1.8.4'
+    implementation 'dev.dejvokep:boosted-yaml:1.3'
 
     compileOnly 'redis.clients:jedis:4.2.3'
     compileOnly 'commons-io:commons-io:2.11.0'
@@ -20,6 +23,9 @@ shadowJar {
         exclude(dependency('com.mojang:brigadier'))
     }
 
+    relocate 'com.mysql' , 'net.william278.husksync.libraries'
+    relocate 'dev.dejvokep' , 'net.william278.husksync.libraries'
+    relocate 'org.xerial.snappy' , 'net.william278.husksync.libraries'
     relocate 'org.apache', 'net.william278.husksync.libraries'
     relocate 'de.themoep', 'net.william278.husksync.libraries'
     relocate 'org.jetbrains', 'net.william278.husksync.libraries'

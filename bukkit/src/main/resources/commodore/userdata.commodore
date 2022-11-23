@@ -5,7 +5,9 @@ userdata {
     }
   }
   list {
-    name brigadier:string single_word;
+    name brigadier:string single_word {
+      page brigadier:integer;
+    }
   }
   delete {
     name brigadier:string single_word {
@@ -20,6 +22,14 @@ userdata {
   pin {
     name brigadier:string single_word {
       version brigadier:string single_word;
+    }
+  }
+  dump {
+    name brigadier:string single_word {
+      version brigadier:string single_word {
+        web;
+        file;
+      }
     }
   }
 }

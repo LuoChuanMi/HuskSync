@@ -1,11 +1,10 @@
 package net.william278.husksync.listener;
 
+import de.themoep.minedown.adventure.MineDown;
 import net.william278.husksync.HuskSync;
-import net.william278.husksync.config.Settings;
-import net.william278.husksync.data.ItemData;
 import net.william278.husksync.data.DataSaveCause;
+import net.william278.husksync.data.ItemData;
 import net.william278.husksync.player.OnlineUser;
-import net.william278.husksync.editor.ItemEditorMenuType;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.HashSet;
@@ -57,7 +56,7 @@ public abstract class EventListener {
         CompletableFuture.runAsync(() -> {
             try {
                 // Hold reading data for the network latency threshold, to ensure the source server has set the redis key
-                Thread.sleep(Math.max(0, plugin.getSettings().getIntegerValue(Settings.ConfigOption.SYNCHRONIZATION_NETWORK_LATENCY_MILLISECONDS)));
+                Thread.sleep(Math.max(0, plugin.getSettings().networkLatencyMilliseconds));
             } catch (InterruptedException e) {
                 plugin.getLoggingAdapter().log(Level.SEVERE, "An exception occurred handling a player join", e);
             } finally {
@@ -123,9 +122,17 @@ public abstract class EventListener {
      */
     private void handleSynchronisationCompletion(@NotNull OnlineUser user, boolean succeeded) {
         if (succeeded) {
-            plugin.getLocales().getLocale("synchronisation_complete").ifPresent(user::sendActionBar);
-            lockedPlayers.remove(user.uuid);
+            switch (plugin.getSettings().notificationDisplaySlot) {
+                case CHAT -> plugin.getLocales().getLocale("synchronisation_complete")
+                        .ifPresent(user::sendMessage);
+                case ACTION_BAR -> plugin.getLocales().getLocale("synchronisation_complete")
+                        .ifPresent(user::sendActionBar);
+                case TOAST -> plugin.getLocales().getLocale("synchronisation_complete")
+                        .ifPresent(locale -> user.sendToast(locale, new MineDown(""),
+                                "minecraft:bell", "TASK"));
+            }
             plugin.getDatabase().ensureUser(user).join();
+            lockedPlayers.remove(user.uuid);
             plugin.getEventCannon().fireSyncCompleteEvent(user);
         } else {
             plugin.getLocales().getLocale("synchronisation_failed")
@@ -156,7 +163,7 @@ public abstract class EventListener {
                         optionalUserData -> optionalUserData.ifPresent(userData -> plugin.getRedisManager()
                                 .setUserData(user, userData).thenRun(() -> plugin.getDatabase()
                                         .setUserData(user, userData, DataSaveCause.DISCONNECT)))))
-                .thenRun(() -> lockedPlayers.remove(user.uuid)).exceptionally(throwable -> {
+                .exceptionally(throwable -> {
                     plugin.getLoggingAdapter().log(Level.SEVERE,
                             "An exception occurred handling a player disconnection");
                     throwable.printStackTrace();
@@ -165,12 +172,12 @@ public abstract class EventListener {
     }
 
     /**
-     * Asynchronously handles a world save event
+     * Handles the saving of data when the world save event is fired
      *
      * @param usersInWorld a list of users in the world that is being saved
      */
-    protected final void handleAsyncWorldSave(@NotNull List<OnlineUser> usersInWorld) {
-        if (disabling || !plugin.getSettings().getBooleanValue(Settings.ConfigOption.SYNCHRONIZATION_SAVE_ON_WORLD_SAVE)) {
+    protected final void saveOnWorldSave(@NotNull List<OnlineUser> usersInWorld) {
+        if (disabling || !plugin.getSettings().saveOnWorldSave) {
             return;
         }
         usersInWorld.forEach(user -> user.getUserData(plugin.getLoggingAdapter(), plugin.getSettings()).join().ifPresent(
@@ -178,37 +185,31 @@ public abstract class EventListener {
     }
 
     /**
-     * Handle an inventory menu closing
+     * Handles the saving of data when a player dies
      *
-     * @param user          The user who closed the menu
-     * @param menuInventory Serialized {@link ItemData} containing the inventory contents
-     * @implNote The size of the serialized {@link ItemData} array is determined by the {@link ItemEditorMenuType} of the closed inventory
+     * @param user  The user who died
+     * @param drops The items that this user would have dropped
      */
-    protected final void handleMenuClose(@NotNull OnlineUser user, @NotNull ItemData menuInventory) {
-        if (disabling) {
+    protected void saveOnPlayerDeath(@NotNull OnlineUser user, @NotNull ItemData drops) {
+        if (disabling || !plugin.getSettings().saveOnDeath) {
             return;
         }
-        plugin.getDataEditor().closeInventoryMenu(user, menuInventory);
-    }
 
-    /**
-     * Determine whether an inventory click should be cancelled
-     *
-     * @param user {@link OnlineUser} performing the event
-     * @return Whether the event should be cancelled
-     */
-    protected final boolean cancelInventoryClick(@NotNull OnlineUser user) {
-        return plugin.getDataEditor().cancelMenuEdit(user) || cancelPlayerEvent(user);
+        user.getUserData(plugin.getLoggingAdapter(), plugin.getSettings())
+                .thenAccept(data -> data.ifPresent(userData -> {
+                    userData.getInventory().orElse(ItemData.empty()).serializedItems = drops.serializedItems;
+                    plugin.getDatabase().setUserData(user, userData, DataSaveCause.DEATH);
+                }));
     }
 
     /**
      * Determine whether a player event should be cancelled
      *
-     * @param user {@link OnlineUser} performing the event
+     * @param userUuid The UUID of the user to check
      * @return Whether the event should be cancelled
      */
-    protected final boolean cancelPlayerEvent(@NotNull OnlineUser user) {
-        return disabling || lockedPlayers.contains(user.uuid);
+    protected final boolean cancelPlayerEvent(@NotNull UUID userUuid) {
+        return disabling || lockedPlayers.contains(userUuid);
     }
 
     /**
@@ -217,10 +218,17 @@ public abstract class EventListener {
     public final void handlePluginDisable() {
         disabling = true;
 
-        plugin.getOnlineUsers().stream().filter(user -> !lockedPlayers.contains(user.uuid)).forEach(
-                user -> user.getUserData(plugin.getLoggingAdapter(), plugin.getSettings()).join().ifPresent(
-                        userData -> plugin.getDatabase().setUserData(user, userData, DataSaveCause.SERVER_SHUTDOWN).join()));
+        // Save data for all online users
+        plugin.getOnlineUsers().stream()
+                .filter(user -> !lockedPlayers.contains(user.uuid))
+                .forEach(user -> {
+                    lockedPlayers.add(user.uuid);
+                    user.getUserData(plugin.getLoggingAdapter(), plugin.getSettings()).join()
+                            .ifPresent(userData -> plugin.getDatabase()
+                                    .setUserData(user, userData, DataSaveCause.SERVER_SHUTDOWN).join());
+                });
 
+        // Close outstanding connections
         plugin.getDatabase().close();
         plugin.getRedisManager().close();
     }

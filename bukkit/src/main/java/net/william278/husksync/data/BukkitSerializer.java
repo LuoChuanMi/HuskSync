@@ -1,5 +1,7 @@
 package net.william278.husksync.data;
 
+import net.william278.husksync.BukkitHuskSync;
+import net.william278.husksync.config.Settings;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.util.io.BukkitObjectInputStream;
@@ -13,6 +15,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.logging.Level;
 
 public class BukkitSerializer {
 
@@ -38,13 +41,18 @@ public class BukkitSerializer {
                 bukkitOutputStream.writeInt(inventoryContents.length);
 
                 // Write each serialize each ItemStack to the output stream
+                final boolean persistLockedMaps = BukkitHuskSync.getInstance().getSettings().getSynchronizationFeature(Settings.SynchronizationFeature.LOCKED_MAPS);
                 for (ItemStack inventoryItem : inventoryContents) {
+                    if (persistLockedMaps) {
+                        BukkitMapHandler.persistMapData(inventoryItem);
+                    }
                     bukkitOutputStream.writeObject(serializeItemStack(inventoryItem));
                 }
 
                 // Return encoded data, using the encoder from SnakeYaml to get a ByteArray conversion
                 return Base64Coder.encodeLines(byteOutputStream.toByteArray());
             } catch (IOException e) {
+                BukkitHuskSync.getInstance().getLoggingAdapter().log(Level.SEVERE, "Failed to serialize item stack data", e);
                 throw new DataSerializationException("Failed to serialize item stack data", e);
             }
         });
@@ -86,8 +94,13 @@ public class BukkitSerializer {
 
                     // Set the ItemStacks in the array from deserialized ItemStack data
                     int slotIndex = 0;
+                    final boolean persistLockedMaps = BukkitHuskSync.getInstance().getSettings().getSynchronizationFeature(Settings.SynchronizationFeature.LOCKED_MAPS);
                     for (ItemStack ignored : inventoryContents) {
-                        inventoryContents[slotIndex] = deserializeItemStack(bukkitInputStream.readObject());
+                        final ItemStack deserialized = deserializeItemStack(bukkitInputStream.readObject());
+                        if (persistLockedMaps) {
+                            BukkitMapHandler.setMapRenderer(deserialized);
+                        }
+                        inventoryContents[slotIndex] = deserialized;
                         slotIndex++;
                     }
 
@@ -95,6 +108,7 @@ public class BukkitSerializer {
                     return inventoryContents;
                 }
             } catch (IOException | ClassNotFoundException e) {
+                BukkitHuskSync.getInstance().getLoggingAdapter().log(Level.SEVERE, "Failed to deserialize item stack data", e);
                 throw new DataSerializationException("Failed to deserialize item stack data", e);
             }
         });
@@ -151,6 +165,7 @@ public class BukkitSerializer {
                 // Return encoded data, using the encoder from SnakeYaml to get a ByteArray conversion
                 return Base64Coder.encodeLines(byteOutputStream.toByteArray());
             } catch (IOException e) {
+                BukkitHuskSync.getInstance().getLoggingAdapter().log(Level.SEVERE, "Failed to serialize potion effect data", e);
                 throw new DataSerializationException("Failed to serialize potion effect data", e);
             }
         });
@@ -186,6 +201,7 @@ public class BukkitSerializer {
                     return potionEffects;
                 }
             } catch (IOException | ClassNotFoundException e) {
+                BukkitHuskSync.getInstance().getLoggingAdapter().log(Level.SEVERE, "Failed to deserialize potion effect data", e);
                 throw new DataSerializationException("Failed to deserialize potion effects", e);
             }
         });

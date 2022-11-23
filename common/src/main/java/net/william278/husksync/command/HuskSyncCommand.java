@@ -1,6 +1,6 @@
 package net.william278.husksync.command;
 
-import de.themoep.minedown.MineDown;
+import de.themoep.minedown.adventure.MineDown;
 import net.william278.desertwell.AboutMenu;
 import net.william278.husksync.HuskSync;
 import net.william278.husksync.migrator.Migrator;
@@ -154,7 +154,7 @@ public class HuskSyncCommand extends CommandBase implements TabCompletable, Cons
     public List<String> onTabComplete(@NotNull String[] args) {
         if (args.length <= 1) {
             return Arrays.stream(SUB_COMMANDS)
-                    .filter(argument -> argument.startsWith(args.length >= 1 ? args[0] : ""))
+                    .filter(argument -> argument.startsWith(args.length == 1 ? args[0] : ""))
                     .sorted().collect(Collectors.toList());
         }
         return Collections.emptyList();

@@ -1,5 +1,6 @@
 package net.william278.husksync.data;
 
+import net.william278.husksync.config.Locales;
 import net.william278.husksync.player.OnlineUser;
 import net.william278.husksync.api.BaseHuskSyncAPI;
 import net.william278.husksync.player.User;
@@ -26,6 +27,12 @@ public enum DataSaveCause {
      * @since 2.0
      */
     WORLD_SAVE,
+    /**
+     * Indicates data saved when the user died
+     *
+     * @since 2.1
+     */
+    DEATH,
     /**
      * Indicates data saved when the server shut down
      *
@@ -92,6 +99,11 @@ public enum DataSaveCause {
             }
         }
         return UNKNOWN;
+    }
+
+    @NotNull
+    public String getDisplayName() {
+        return Locales.truncate(name().toLowerCase(), 10);
     }
 
 }

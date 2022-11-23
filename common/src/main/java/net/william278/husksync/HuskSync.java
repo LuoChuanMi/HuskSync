@@ -4,7 +4,6 @@ import net.william278.desertwell.UpdateChecker;
 import net.william278.husksync.config.Locales;
 import net.william278.husksync.config.Settings;
 import net.william278.husksync.data.DataAdapter;
-import net.william278.husksync.editor.DataEditor;
 import net.william278.husksync.database.Database;
 import net.william278.husksync.event.EventCannon;
 import net.william278.husksync.migrator.Migrator;
@@ -15,6 +14,7 @@ import net.william278.husksync.util.ResourceReader;
 import net.william278.desertwell.Version;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.File;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -71,14 +71,6 @@ public interface HuskSync {
     DataAdapter getDataAdapter();
 
     /**
-     * Returns the data editor implementation
-     *
-     * @return the {@link DataEditor} implementation
-     */
-    @NotNull
-    DataEditor getDataEditor();
-
-    /**
      * Returns the event firing cannon
      *
      * @return the {@link EventCannon} implementation
@@ -133,6 +125,14 @@ public interface HuskSync {
      */
     @NotNull
     Version getPluginVersion();
+
+    /**
+     * Returns the plugin data folder
+     *
+     * @return the plugin data folder as a {@link File}
+     */
+    @NotNull
+    File getDataFolder();
 
     /**
      * Returns a future returning the latest plugin {@link Version} if the plugin is out-of-date

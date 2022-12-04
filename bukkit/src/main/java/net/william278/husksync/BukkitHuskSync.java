@@ -128,7 +128,7 @@ public class BukkitHuskSync extends JavaPlugin implements HuskSync {
                 getLoggingAdapter().log(Level.INFO, "Successfully established a connection to the database");
             } else {
                 throw new HuskSyncInitializationException("Failed to establish a connection to the database. " +
-                                                          "Please check the supplied database credentials in the config file");
+                        "Please check the supplied database credentials in the config file");
             }
 
             // Prepare redis connection
@@ -139,7 +139,7 @@ public class BukkitHuskSync extends JavaPlugin implements HuskSync {
                 getLoggingAdapter().log(Level.INFO, "Successfully established a connection to the Redis server");
             } else {
                 throw new HuskSyncInitializationException("Failed to establish a connection to the Redis server. " +
-                                                          "Please check the supplied Redis credentials in the config file");
+                        "Please check the supplied Redis credentials in the config file");
             }
 
             // Register events
@@ -149,12 +149,16 @@ public class BukkitHuskSync extends JavaPlugin implements HuskSync {
 
             // Register permissions
             getLoggingAdapter().log(Level.INFO, "Registering permissions & commands...");
-            Arrays.stream(Permission.values()).forEach(permission -> getServer().getPluginManager()
-                    .addPermission(new org.bukkit.permissions.Permission(permission.node, switch (permission.defaultAccess) {
-                        case EVERYONE -> PermissionDefault.TRUE;
-                        case NOBODY -> PermissionDefault.FALSE;
-                        case OPERATORS -> PermissionDefault.OP;
-                    })));
+            try {
+                Arrays.stream(Permission.values()).forEach(permission -> getServer().getPluginManager()
+                        .addPermission(new org.bukkit.permissions.Permission(permission.node, switch (permission.defaultAccess) {
+                            case EVERYONE -> PermissionDefault.TRUE;
+                            case NOBODY -> PermissionDefault.FALSE;
+                            case OPERATORS -> PermissionDefault.OP;
+                        })));
+            } catch (Throwable throwable) {
+                getLogger().warning(throwable.getMessage());
+            }
 
             // Register commands
             for (final BukkitCommandType bukkitCommandType : BukkitCommandType.values()) {
@@ -185,7 +189,7 @@ public class BukkitHuskSync extends JavaPlugin implements HuskSync {
                 getLatestVersionIfOutdated().thenAccept(newestVersion ->
                         newestVersion.ifPresent(newVersion -> getLoggingAdapter().log(Level.WARNING,
                                 "An update is available for HuskSync, v" + newVersion
-                                + " (Currently running v" + getPluginVersion() + ")")));
+                                        + " (Currently running v" + getPluginVersion() + ")")));
             }
         } catch (HuskSyncInitializationException exception) {
             getLoggingAdapter().log(Level.SEVERE, """

@@ -16,6 +16,7 @@ import org.bukkit.*;
 import org.bukkit.advancement.Advancement;
 import org.bukkit.advancement.AdvancementProgress;
 import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerTeleportEvent;
@@ -104,9 +105,17 @@ public class BukkitPlayer extends OnlineUser {
                 if (statusData.health != currentHealth) {
                     final double healthToSet = currentHealth > currentMaxHealth ? currentMaxHealth : statusData.health;
                     if (healthToSet < 1) {
-                        Bukkit.getScheduler().runTask(BukkitHuskSync.getInstance(), () -> player.setHealth(healthToSet));
+                        Bukkit.getScheduler().runTask(BukkitHuskSync.getInstance(), () -> {
+                            AttributeInstance attributeInstance = player.getAttribute(Attribute.GENERIC_MAX_HEALTH);
+                            if (attributeInstance != null) {
+                                player.setHealth(Math.max(Math.min(healthToSet, attributeInstance.getBaseValue()), 1));
+                            }
+                        });
                     } else {
-                        player.setHealth(healthToSet);
+                        AttributeInstance attributeInstance = player.getAttribute(Attribute.GENERIC_MAX_HEALTH);
+                        if (attributeInstance != null) {
+                            player.setHealth(Math.max(Math.min(healthToSet, attributeInstance.getBaseValue()), 1));
+                        }
                     }
                 }
 
@@ -536,7 +545,7 @@ public class BukkitPlayer extends OnlineUser {
                         }
                     }, () -> BukkitHuskSync.getInstance().getLoggingAdapter().log(Level.WARNING,
                             "Could not set " + player.getName() + "'s persistent data key " + keyString +
-                            " as it has an invalid type. Skipping!"));
+                                    " as it has an invalid type. Skipping!"));
                 }
             });
         }).exceptionally(throwable -> {

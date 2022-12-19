@@ -359,7 +359,7 @@ public abstract class OnlineUser extends User {
                             }
                         }
                     }};
-
+// TODO
                     // Apply operations in parallel, join when complete
                     CompletableFuture.allOf(dataGetOperations.toArray(new CompletableFuture[0])).join();
                     return Optional.of(builder.build());

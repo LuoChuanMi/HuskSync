@@ -108,13 +108,21 @@ public class BukkitPlayer extends OnlineUser {
                         Bukkit.getScheduler().runTask(BukkitHuskSync.getInstance(), () -> {
                             AttributeInstance attributeInstance = player.getAttribute(Attribute.GENERIC_MAX_HEALTH);
                             if (attributeInstance != null) {
-                                player.setHealth(Math.max(Math.min(healthToSet, attributeInstance.getBaseValue()), 1));
+                                try {
+                                    player.setHealth(Math.max(Math.min(healthToSet, attributeInstance.getBaseValue()), 1));
+                                } catch (Throwable throwable) {
+                                    BukkitHuskSync.getInstance().getLogger().log(Level.WARNING, "Failed to set health", throwable);
+                                }
                             }
                         });
                     } else {
                         AttributeInstance attributeInstance = player.getAttribute(Attribute.GENERIC_MAX_HEALTH);
                         if (attributeInstance != null) {
-                            player.setHealth(Math.max(Math.min(healthToSet, attributeInstance.getBaseValue()), 1));
+                            try {
+                                player.setHealth(Math.max(Math.min(healthToSet, attributeInstance.getBaseValue()), 1));
+                            } catch (Throwable throwable) {
+                                BukkitHuskSync.getInstance().getLogger().log(Level.WARNING, "Failed to set health", throwable);
+                            }
                         }
                     }
                 }

@@ -75,9 +75,14 @@ public class BukkitMapHandler {
         if (itemStack == null || itemStack.getType() != Material.FILLED_MAP) {
             return;
         }
+        if (!(itemStack.getItemMeta() instanceof final MapMeta mapMeta)) {
+            return;
+        }
 
-        final MapMeta mapMeta = (MapMeta) itemStack.getItemMeta();
-        if (mapMeta == null || mapMeta.getMapView() == null || !mapMeta.getMapView().isLocked()) {
+        if (!mapMeta.hasMapView()) {
+            return;
+        }
+        if (mapMeta.getMapView() == null || !mapMeta.getMapView().isLocked()) {
             return;
         }
 
@@ -197,6 +202,7 @@ public class BukkitMapHandler {
 
         /**
          * Extract the map data from the canvas. Must be rendered first
+         *
          * @return the extracted map data
          */
         @NotNull

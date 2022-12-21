@@ -5,6 +5,7 @@ import net.william278.husksync.config.Settings;
 import net.william278.husksync.data.BukkitInventoryMap;
 import net.william278.husksync.data.BukkitSerializer;
 import net.william278.husksync.data.ItemData;
+import net.william278.husksync.event.HandlePlayerQuitEvent;
 import net.william278.husksync.player.BukkitPlayer;
 import net.william278.husksync.player.OnlineUser;
 import org.bukkit.Bukkit;
@@ -43,6 +44,8 @@ public class BukkitEventListener extends EventListener implements BukkitJoinEven
 
     @Override
     public void handlePlayerQuit(@NotNull BukkitPlayer player) {
+        HandlePlayerQuitEvent event = new HandlePlayerQuitEvent(player.getPlayer());
+        Bukkit.getServer().getPluginManager().callEvent(event);
         super.handlePlayerQuit(player);
     }
 

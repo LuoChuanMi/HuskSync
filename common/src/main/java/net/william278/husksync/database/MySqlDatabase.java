@@ -182,6 +182,25 @@ public class MySqlDatabase extends Database {
         });
     }
 
+    public List<User> getAllUser() {
+        List<User> users = new ArrayList<>();
+        try (Connection connection = getConnection()) {
+            try (PreparedStatement statement = connection.prepareStatement(formatStatementTables("""
+                    SELECT `uuid`, `username`
+                    FROM `%users_table%`"""))) {
+
+                final ResultSet resultSet = statement.executeQuery();
+                while (resultSet.next()) {
+                    users.add(new User(UUID.fromString(resultSet.getString("uuid")),
+                            resultSet.getString("username")));
+                }
+            }
+        } catch (SQLException e) {
+            getLogger().log(Level.SEVERE, "Failed to fetch a user from uuid from the database", e);
+        }
+        return users;
+    }
+
     @Override
     public CompletableFuture<Optional<User>> getUserByName(@NotNull String username) {
         return CompletableFuture.supplyAsync(() -> {

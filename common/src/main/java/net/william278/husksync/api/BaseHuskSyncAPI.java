@@ -42,6 +42,10 @@ public abstract class BaseHuskSyncAPI {
         return plugin.getDatabase().getUser(uuid);
     }
 
+    public final List<User> getAllUser() {
+        return plugin.getDatabase().getAllUser();
+    }
+
     /**
      * Returns a {@link User} by the given player's username (case-insensitive), if they exist.
      *

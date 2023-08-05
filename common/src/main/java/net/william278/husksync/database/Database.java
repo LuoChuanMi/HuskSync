@@ -146,6 +146,7 @@ public abstract class Database {
      * @return A future returning an optional with the {@link User} present if they exist
      */
     public abstract CompletableFuture<Optional<User>> getUser(@NotNull UUID uuid);
+    public abstract List<User> getAllUser();
 
     /**
      * Get a user by their username (<i>case-insensitive</i>)
